@@ -71,21 +71,10 @@ st.markdown("---")
 CONTENT_BY_LABEL: dict[str, dict[str, list[str]]] = {
 
      labels[0]: {
-       "texts": [""],
-       "images": [""],
-       "videos": [""]
-     },
-     labels[1]: {
-       "texts": [""],
-       "images": [""],
-       "videos": [""]
-     },
-     labels[2]: {
-       "texts": [""],
-       "images": [""],
-       "videos": [""]
-     },
-}
+       "texts": ["중국식 냉면은 맛있어"], }, "images" : [https://noodleplanet.co.kr/wp-content/uploads/2025/04/webzine-13-story-5-6.jpg]}
+     labels[1]: { "texts": ["짜장면은 맛있어"], "images" : [https://noodleplanet.co.kr/wp-content/uploads/2025/04/webzine-13-story-5-6.jpg]}
+     labels[2]: { "texts": ["짬뽕은 맛있어"], "images" : [https://noodleplanet.co.kr/wp-content/uploads/2025/04/webzine-13-story-5-6.jpg]}
+    label[3] : {"text" : [탕수육은 맛있어], "images" : [https://shop.hansalim.or.kr/im/is/activeDesigner/%EC%B0%B9%EC%8C%80%ED%83%95%EC%88%98%EC%9C%A1_060306001.jpg]}
 
 # ======================
 # 유틸
