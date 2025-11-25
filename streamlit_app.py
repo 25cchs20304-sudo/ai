@@ -52,7 +52,7 @@ MODEL_PATH = st.secrets.get("MODEL_PATH", "model.pkl")
 @st.cache_resource
 def load_model_from_drive(file_id: str, output_path: str):
     if not os.path.exists(output_path):
-        url = f"https://drive.google.com/1X9g3J78Xd721Ygplt1zZ7bXc1IuXpNsT?id={file_id}"
+        url = f"https://drive.google.com/1X9g3J78Xd721Ygplt1zZ7bXc1IuXpNsTuc?id={file_id}"
         gdown.download(url, output_path, quiet=False)
     return load_learner(output_path, cpu=True)
 
