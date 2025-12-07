@@ -1,252 +1,204 @@
-# streamlit_app.py
+#자신이 만든 레포지토리(저장소)에 streamlit_app.py 만들고 다음 내용 복붙해서 집어넣기
 
-import os, re
-from io import BytesIO
-import numpy as np
 import streamlit as st
-from PIL import Image, ImageOps
-from fastai.vision.all import *
-import gdown
+import pandas as pd
 
-# ======================
-# 페이지/스타일
-# ======================
-st.set_page_config(page_title="Fastai 이미지 분류기", page_icon="🤖", layout="wide")
+# --- 1. 페이지 기본 설정 ---
+st.set_page_config(
+    page_title="Streamlit 마법 교실",
+    page_icon="🔮",
+    layout="wide"
+)
+
+# --- 2. 페이지 타이틀 ---
+st.title("Streamlit 마법 교실 🔮")
+st.subheader("HTML/CSS를 활용해 멋진 효과를 만들어 봐요!")
+st.markdown("---") # 구분선
+
+# --- 3. 모든 커스텀 CSS ---
+# st.markdown 내부에 <style> 태그를 사용하여 CSS를 전역으로 주입합니다.
+# 학생들에게 각 CSS 클래스가 어떤 효과를 주는지 설명하기 좋습니다.
 st.markdown("""
 <style>
-h1 { color:#1E88E5; text-align:center; font-weight:800; letter-spacing:-0.5px; }
-.prediction-box { background:#E3F2FD; border:2px solid #1E88E5; border-radius:12px; padding:22px; text-align:center; margin:16px 0; box-shadow:0 4px 10px rgba(0,0,0,.06);}
-.prediction-box h2 { color:#0D47A1; margin:0; font-size:2.0rem; }
-.prob-card { background:#fff; border-radius:10px; padding:12px 14px; margin:10px 0; box-shadow:0 2px 6px rgba(0,0,0,.06); }
-.prob-bar-bg { background:#ECEFF1; border-radius:6px; width:100%; height:22px; overflow:hidden; }
-.prob-bar-fg { background:#4CAF50; height:100%; border-radius:6px; transition:width .5s; }
-.prob-bar-fg.highlight { background:#FF6F00; }
-.info-grid { display:grid; grid-template-columns:repeat(12,1fr); gap:14px; }
-.card { border:1px solid #e3e6ea; border-radius:12px; padding:14px; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,.05); }
-.card h4 { margin:0 0 10px; font-size:1.05rem; color:#0D47A1; }
-.thumb { width:100%; height:auto; border-radius:10px; display:block; }
-.thumb-wrap { position:relative; display:block; }
-.play { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:60px; height:60px; border-radius:50%; background:rgba(0,0,0,.55); }
-.play:after{ content:''; border-style:solid; border-width:12px 0 12px 20px; border-color:transparent transparent transparent #fff; position:absolute; top:50%; left:50%; transform:translate(-40%,-50%); }
-.helper { color:#607D8B; font-size:.9rem; }
-.stFileUploader, .stCameraInput { border:2px dashed #1E88E5; border-radius:12px; padding:16px; background:#f5fafe; }
+/* 섹션 1: 움직이는 그라데이션 텍스트
+  - background: 4가지 색상의 선형 그라데이션을 만듭니다.
+  - background-size: 배경을 4배 키워서 움직일 공간을 만듭니다.
+  - background-clip: text; : 배경을 텍스트 모양으로 잘라냅니다.
+  - text-fill-color: transparent; : 텍스트 색을 투명하게 만들어 배경 그라데이션이 보이게 합니다.
+  - animation: 'gradient' 애니메이션을 5초 동안 무한 반복합니다.
+*/
+@keyframes gradient {
+    0% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.gradient-text {
+    font-size: 40px;
+    font-weight: bold;
+    background: linear-gradient(-45deg, #ee7752, #e73c7e, #23a6d5, #23d5ab);
+    background-size: 400% 400%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradient 5s ease infinite;
+    text-align: center;
+    padding: 10px;
+}
+
+/* 섹션 2: 인터랙티브 카드 (마우스 호버)
+  - transition: 0.3초 동안 부드럽게 변하도록 설정합니다.
+  - box-shadow: 카드에 입체감을 주는 그림자입니다.
+  - :hover (가상 클래스): 마우스를 올렸을 때 적용될 스타일입니다.
+  - transform: scale(1.05); : 마우스를 올리면 1.05배 커집니다.
+*/
+.interactive-card {
+    background-color: #f0f8ff; /* AliceBlue */
+    border: 1px solid #d6eaff;
+    border-radius: 10px;
+    padding: 20px;
+    margin: 10px 0;
+    text-align: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.interactive-card:hover {
+    transform: scale(1.05);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+/* 섹션 3: Flexbox를 이용한 카드 레이아웃
+  - display: flex; : 내부 아이템들을 가로로 정렬합니다.
+  - justify-content: space-around; : 아이템들 사이에 균등한 간격을 줍니다.
+  - flex-wrap: wrap; : 화면이 좁아지면 아이템이 다음 줄로 넘어갑니다. (반응형)
+*/
+.flex-container {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    padding: 10px;
+    background-color: #fafafa;
+    border-radius: 10px;
+}
+
+.flex-card {
+    width: 30%;
+    min-width: 250px; /* 최소 너비 */
+    background-color: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    padding: 15px;
+    margin: 10px;
+    border-top: 5px solid #23a6d5; /* 상단에 포인트 컬러 */
+}
+
+/* 섹션 4: 애니메이션이 있는 버튼
+  - ::before (가상 요소): 버튼 뒤에 빛나는 효과를 위한 추가 레이어입니다.
+  - filter: blur(15px); : 빛이 번지는 효과를 줍니다.
+  - animation: 'glowing' 애니메이션을 20초 동안 선형으로 무한 반복합니다.
+*/
+@keyframes glowing {
+    0% { background-position: 0 0; }
+    50% { background-position: 400% 0; }
+    100% { background-position: 0 0; }
+}
+
+.glowing-button {
+    position: relative;
+    padding: 15px 30px;
+    font-size: 18px;
+    font-weight: bold;
+    color: white;
+    background-color: #313131;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    overflow: hidden; /* 가상 요소가 버튼 밖으로 나가지 않도록 */
+}
+
+.glowing-button::before {
+    content: '';
+    position: absolute;
+    top: -5px; left: -5px; right: -5px; bottom: -5px;
+    z-index: -1;
+    background: linear-gradient(90deg, #03a9f4, #f441a5, #ffeb3b, #03a9f4);
+    background-size: 400%;
+    border-radius: 15px;
+    filter: blur(15px);
+    animation: glowing 20s linear infinite;
+}
+
 </style>
 """, unsafe_allow_html=True)
 
-st.title("이미지 분류기 (Fastai) — 확률 막대 + 라벨별 고정 콘텐츠")
-
-# ======================
-# 세션 상태
-# ======================
-if "img_bytes" not in st.session_state:
-    st.session_state.img_bytes = None
-if "last_prediction" not in st.session_state:
-    st.session_state.last_prediction = None
-
-# ======================
-# 모델 로드
-# ======================
-FILE_ID = st.secrets.get("1X9g3J78Xd721Ygplt1zZ7bXc1IuXpNsT", "")
-MODEL_PATH = st.secrets.get("MODEL_PATH", "model.pkl")
-
-@st.cache_resource
-def load_model_from_drive(file_id: str, output_path: str):
-    if not os.path.exists(output_path):
-        url = f"https://drive.google.com/uc?id={file_id}"
-        gdown.download(url, output_path, quiet=False)
-    return load_learner(output_path, cpu=True)
-
-with st.spinner("🤖 모델 로드 중..."):
-    learner = load_model_from_drive(FILE_ID, MODEL_PATH)
-st.success("✅ 모델 로드 완료")
-
-labels = [str(x) for x in learner.dls.vocab]
-st.write(f"**분류 가능한 항목:** `{', '.join(labels)}`")
+# --- 4. 섹션 1: 움직이는 그라데이션 텍스트 ---
+st.header("1. HTML/CSS: ✨ 움직이는 그라데이션 텍스트")
+st.markdown('<div class="gradient-text">이 텍스트는 CSS 애니메이션으로 움직여요!</div>', unsafe_allow_html=True)
 st.markdown("---")
 
-# ======================
-# 라벨 이름 매핑: 여기를 채우세요!
-# 각 라벨당 최대 3개씩 표시됩니다.
-# ======================
-CONTENT_BY_LABEL: dict[str, dict[str, list[str]]] = {
-    labels[0]: {
-        "texts": ["중국식 냉면은 맛있어"],
-        "images": ["https://noodleplanet.co.kr/wp-content/uploads/2025/04/webzine-13-story-5-6.jpg"],
-    },
-    labels[1]: {
-        "texts": ["짜장면은 맛있어"],
-        "images": ["https://noodleplanet.co.kr/wp-content/uploads/2025/04/webzine-13-story-5-6.jpg"],
-    },
-    labels[2]: {
-        "texts": ["짬뽕은 맛있어"],
-        "images": ["https://noodleplanet.co.kr/wp-content/uploads/2025/04/webzine-13-story-5-6.jpg"],
-    },
-    labels[3]: {
-        "texts": ["탕수육은 맛있어"],
-        "images": ["https://shop.hansalim.or.kr/im/is/activeDesigner/%EC%B0%B9%EC%8C%80%ED%83%95%EC%88%98%EC%9C%A1_060306001.jpg"],
-    },
-}
+# --- 5. 섹션 2: 인터랙티브 카드 (마우스 호버) ---
+st.header("2. HTML/CSS: 🖱️ 인터랙티브 카드 (마우스 올려보기)")
+st.markdown("""
+<div class="interactive-card">
+    <h3>마우스를 올려보세요!</h3>
+    <p><code>:hover</code> 가상 클래스와 <code>transform: scale()</code>을 사용하면<br>
+    이렇게 재미있는 효과를 만들 수 있습니다.</p>
+</div>
+""", unsafe_allow_html=True)
+st.markdown("---")
 
-# ======================
-# 유틸
-# ======================
-def load_pil_from_bytes(b: bytes) -> Image.Image:
-    pil = Image.open(BytesIO(b))
-    pil = ImageOps.exif_transpose(pil)
-    if pil.mode != "RGB": pil = pil.convert("RGB")
-    return pil
+# --- 6. 섹션 3: Flexbox를 이용한 카드 레이아웃 ---
+st.header("3. HTML/CSS: 🎨 Flexbox로 카드 정렬하기")
+st.markdown("""
+<div class="flex-container">
+    <div class="flex-card">
+        <h4>카드 1: HTML</h4>
+        <p>웹 페이지의 뼈대를 만듭니다. (<code>div</code>, <code>p</code>, <code>h4</code>...)</p>
+    </div>
+    <div class="flex-card">
+        <h4>카드 2: CSS</h4>
+        <p>웹 페이지를 예쁘게 꾸며줍니다. (<code>color</code>, <code>background</code>...)</p>
+    </div>
+    <div class="flex-card">
+        <h4>카드 3: Streamlit</h4>
+        <p>파이썬만으로 이 모든 것을 쉽게 만들 수 있게 해줍니다.</p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+st.markdown("---")
 
-def yt_id_from_url(url: str) -> str | None:
-    if not url: return None
-    pats = [r"(?:v=|/)([0-9A-Za-z_-]{11})(?:\?|&|/|$)", r"youtu\.be/([0-9A-Za-z_-]{11})"]
-    for p in pats:
-        m = re.search(p, url)
-        if m: return m.group(1)
-    return None
+# --- 7. 섹션 4: 애니메이션이 있는 버튼 ---
+st.header("4. HTML/CSS: 🚀 빛나는 애니메이션 버튼")
+st.markdown('<div style="text-align: center; padding: 20px;"><button class="glowing-button">✨ 마법 버튼 ✨</button></div>', unsafe_allow_html=True)
+st.markdown("---")
 
-def yt_thumb(url: str) -> str | None:
-    vid = yt_id_from_url(url)
-    return f"https://img.youtube.com/vi/{vid}/hqdefault.jpg" if vid else None
+# --- 8. 섹션 5: Streamlit 기본 기능 (데이터프레임) ---
+st.header("5. Streamlit 기본 기능: 📊 데이터프레임")
+st.write("Streamlit은 Pandas 데이터프레임을 표로 멋지게 보여줍니다.")
+df = pd.DataFrame({
+    "Name": ["Alice", "Bob", "Charlie"],
+    "Age": [24, 30, 29],
+    "Country": ["Korea", "USA", "UK"]
+})
+st.dataframe(df)
+st.markdown("---")
 
-def pick_top3(lst):
-    return [x for x in lst if isinstance(x, str) and x.strip()][:3]
+# --- 9. 섹션 6: Streamlit 기본 기능 (이미지 및 비디오) ---
+st.header("6. Streamlit 기본 기능: 🖼️ 이미지와 🎬 비디오")
 
-def get_content_for_label(label: str):
-    """라벨명으로 콘텐츠 반환 (texts, images, videos). 없으면 빈 리스트."""
-    cfg = CONTENT_BY_LABEL.get(label, {})
-    return (
-        pick_top3(cfg.get("texts", [])),
-        pick_top3(cfg.get("images", [])),
-        pick_top3(cfg.get("videos", [])),
-    )
+# 컬럼을 사용해 좌우로 배치
+col1, col2 = st.columns(2)
 
-# ======================
-# 입력(카메라/업로드)
-# ======================
-tab_cam, tab_file = st.tabs(["📷 카메라로 촬영", "📁 파일 업로드"])
-new_bytes = None
+with col1:
+    st.write("이미지 표시 예제")
+    st.image("https://www.streamlit.io/images/brand/streamlit-logo-primary-colormark-darktext.png", caption="Streamlit 로고")
 
-with tab_cam:
-    cam = st.camera_input("카메라 스냅샷", label_visibility="collapsed")
-    if cam is not None:
-        new_bytes = cam.getvalue()
+with col2:
+    st.write("유튜브 동영상 예제")
+    st.video("https://www.youtube.com/watch?v=B2iAodr0fOo")
 
-with tab_file:
-    f = st.file_uploader("이미지를 업로드하세요 (jpg, png, jpeg, webp, tiff)",
-                         type=["jpg","png","jpeg","webp","tiff"])
-    if f is not None:
-        new_bytes = f.getvalue()
-
-if new_bytes:
-    st.session_state.img_bytes = new_bytes
-
-# ======================
-# 예측 & 레이아웃
-# ======================
-if st.session_state.img_bytes:
-    top_l, top_r = st.columns([1, 1], vertical_alignment="center")
-
-    pil_img = load_pil_from_bytes(st.session_state.img_bytes)
-    with top_l:
-        st.image(pil_img, caption="입력 이미지", use_container_width=True)
-
-    with st.spinner("🧠 분석 중..."):
-        pred, pred_idx, probs = learner.predict(PILImage.create(np.array(pil_img)))
-        st.session_state.last_prediction = str(pred)
-
-    with top_r:
-        st.markdown(
-            f"""
-            <div class="prediction-box">
-                <span style="font-size:1.0rem;color:#555;">예측 결과:</span>
-                <h2>{st.session_state.last_prediction}</h2>
-                <div class="helper">오른쪽 패널에서 예측 라벨의 콘텐츠가 표시됩니다.</div>
-            </div>
-            """, unsafe_allow_html=True
-        )
-
-    left, right = st.columns([1,1], vertical_alignment="top")
-
-    # 왼쪽: 확률 막대
-    with left:
-        st.subheader("상세 예측 확률")
-        prob_list = sorted(
-            [(labels[i], float(probs[i])) for i in range(len(labels))],
-            key=lambda x: x[1], reverse=True
-        )
-        for lbl, p in prob_list:
-            pct = p * 100
-            hi = "highlight" if lbl == st.session_state.last_prediction else ""
-            st.markdown(
-                f"""
-                <div class="prob-card">
-                  <div style="display:flex;justify-content:space-between;margin-bottom:6px;">
-                    <strong>{lbl}</strong><span>{pct:.2f}%</span>
-                  </div>
-                  <div class="prob-bar-bg">
-                    <div class="prob-bar-fg {hi}" style="width:{pct:.4f}%;"></div>
-                  </div>
-                </div>
-                """, unsafe_allow_html=True
-            )
-
-    # 오른쪽: 정보 패널 (예측 라벨 기본, 다른 라벨로 바꿔보기 가능)
-    with right:
-        st.subheader("라벨별 고정 콘텐츠")
-        default_idx = labels.index(st.session_state.last_prediction) if st.session_state.last_prediction in labels else 0
-        info_label = st.selectbox("표시할 라벨 선택", options=labels, index=default_idx)
-
-        texts, images, videos = get_content_for_label(info_label)
-
-        if not any([texts, images, videos]):
-            st.info(f"라벨 `{info_label}`에 대한 콘텐츠가 아직 없습니다. 코드의 CONTENT_BY_LABEL에 추가하세요.")
-        else:
-            # 텍스트
-            if texts:
-                st.markdown('<div class="info-grid">', unsafe_allow_html=True)
-                for t in texts:
-                    st.markdown(f"""
-                    <div class="card" style="grid-column:span 12;">
-                      <h4>텍스트</h4>
-                      <div>{t}</div>
-                    </div>
-                    """, unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
-
-            # 이미지(최대 3, 3열)
-            if images:
-                st.markdown('<div class="info-grid">', unsafe_allow_html=True)
-                for url in images[:3]:
-                    st.markdown(f"""
-                    <div class="card" style="grid-column:span 4;">
-                      <h4>이미지</h4>
-                      <img src="{url}" class="thumb" />
-                    </div>
-                    """, unsafe_allow_html=True)
-                st.markdown('</div>', unsafe_allow_html=True)
-
-            # 동영상(유튜브 썸네일)
-            if videos:
-                st.markdown('<div class="info-grid">', unsafe_allow_html=True)
-                for v in videos[:3]:
-                    thumb = yt_thumb(v)
-                    if thumb:
-                        st.markdown(f"""
-                        <div class="card" style="grid-column:span 6;">
-                          <h4>동영상</h4>
-                          <a href="{v}" target="_blank" class="thumb-wrap">
-                            <img src="{thumb}" class="thumb"/>
-                            <div class="play"></div>
-                          </a>
-                          <div class="helper">{v}</div>
-                        </div>
-                        """, unsafe_allow_html=True)
-                    else:
-                        st.markdown(f"""
-                        <div class="card" style="grid-column:span 6;">
-                          <h4>동영상</h4>
-                          <a href="{v}" target="_blank">{v}</a>
-                        </div>
-                        """, unsafe_allow_html=True)
-else:
-    st.info("카메라로 촬영하거나 파일을 업로드하면 분석 결과와 라벨별 콘텐츠가 표시됩니다.")
+# --- 10. 마무리 ---
+st.markdown("---")
+st.subheader("모두 멋진 웹 앱을 만들어 보세요! 🚀")
+st.balloons() # 학생들을 위한 작은 이벤트!
